@@ -1,0 +1,150 @@
+format sd card
+
+install raspbian lite on sd card
+
+add ssh txt file (no extensions or info in) to /boot
+
+pi set-up
+
+clusterpi01-installer
+
+pw chagned for pi user
+
+filesystem expanded
+
+image updated
+
+**todo** static IP 192.168.1.0/28 /etc/dhcpcd.conf 
+
+interface eth0
+static ip_address=192.168.1.2/28
+static routers=192.168.1.1
+static domain_name_servers=192.168.1.1 8.8.8.8
+
+***todo***
+Wifi Flapping investigate
+
+**********
+
+***Flashing rpi4 EEPROM for netboot***
+put in good sd card
+apt update
+apt full-upgrade
+
+sudo cp /lib/firmware/raspberrypi/bootloader/beta/pieeprom-2019-09-10.bin pieeprom.bin
+rpi-eeprom-config pieeprom.bin > bootconf.txt
+vim bootconf.txt
+BOOT_ORDER=0x21
+:wq
+rpi-eeprom-config --out pieeprom-new.bin --config bootconf.txt pieeprom.bin
+sudo rpi-eeprom-update -d -f ./pieeprom-new.bin
+sudo reboot (to apply changes)
+
+
+***Pi-cluster01 setup& playbook***
+
+change pw 
+hostname pi-cluster01
+expand filesystem on sd card
+
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install vim
+sudo apt-get install ansible
+
+**Begin rpi01 docker installation**
+
+curl -sSL https://get.docker.com | sh
+sudo usermod -aG docker pi
+sudo apt-get install libffi-dev libssl-dev
+sudo apt-get install -y python python-pip
+sudo pip install docker-compose
+
+**End of docker**
+vim /etc/dhcpcd.conf
+interface eth0
+static ip_address=192.168.1.10/24
+static routers=192.168.1.1
+static domain_name_servers=192.168.1.1 8.8.8.8
+
+**config for dhcp container**
+docker run -it --network host -v /data --name dhcp-server alpine
+apk add vim
+apk add dhcp
+cp /etc/dhcp/dhcpcd.conf.example /etc/dhcp/dhcpcd.conf
+vim /etc/dhcp/dhcpd.conf
+touch /var/lib/dhcp/dhcpd.leases
+/usr/sbin/dhcpcd 
+ln -s /var/lib/dhcp/dhcpd.leases /data/dhcp.leases
+
+
+RUN apk update
+RUN apk add vim
+RUN apk add dhcp
+
+ADD /var/lib/dhcp/dhcpd.leases
+ADD /etc/dhcp/dhcpcd.conf
+
+RUN echo "subnet 192.168.1.0 netmask 255.255.255.0 {" > /etc/dhcp/dhcpcd.conf
+RUN echo "  range 192.168.1.200 192.168.1.254;" >> dhcpd.conf
+RUN echo "  option domain-name-servers 192.168.1.1 8.8.8.8;" >> /etc/dhcp/dhcpcd.conf
+RUN echo "  option routers 192.168.1.1;" >> /etc/dhcp/dhcpcd.conf
+RUN echo "  default-lease-time 1440;" >> /etc/dhcp/dhcpcd.conf
+RUN echo "  max-lease-time 1440;" >> /etc/dhcp/dhcpcd.conf
+RUN echo "}" >> /etc/dhcp/dhcpcd.conf
+
+***Installing Docker***
+
+***Pi-cluster02 set-up NFS, GIT Repo, Syslog***
+
+pw
+hostname pi-cluster02
+expand fs
+apt-get update
+apt-get upgrade
+apt-get install vim
+apt-get install nfs-kernel-server -yq
+apt-get install dosfstools
+
+mkdir /mnt/nfsshare
+mkdir picluster01
+mkdir picluster02
+chown pi:pi {directories}
+sudo mount /dev/sda2 /mnt/nfsshare
+sudo vim /etc/fstab
+sudo vim /etc/dhcpcd.conf
+
+interface eth0
+static ip_address=192.168.1.11/24
+static routers=192.168.1.1
+static domain_name_servers=192.168.1.1 8.8.8.8
+
+sudo vim /etc/exports
+
+***picluster04-vpn 192.168.1.13
+Normal set-up then install pivpn. Automates the whole deal. Works tested.
+
+
+
+/etc/dhcpcd.conf
+interface eth0
+static ip_address=192.168.1.2/28
+static routers=192.168.1.1
+static domain_name_servers=192.168.1.1 8.8.8.8
+
+***nfs clients***
+apt install nfs-common
+sudo mkdir storage
+mount -t nfs 192.168.1.11:/mnt/nfssahre /storage
+df -h 
+sudo vim /etc/fstab 
+192.168.1.11:/mnt/nfsshare /storage nfs defaults 0 0
+
+***SSH keys**
+ssh-keygen -t rsa -b 4096
+ssh-copy-id user@address
+***has to go both ways, for root keys have to re-enable root login by password**
+
+***OS ticket***
+sudo apt-get install mariadb-server10
+
